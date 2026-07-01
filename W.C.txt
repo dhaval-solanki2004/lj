@@ -1,0 +1,256 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+#define ADULT_TICKET_PRICE 1000.00
+#define CHILD_TICKET_PRICE 600.00
+#define BOOKING_FILE "bookings.txt"
+#define TEMP_FILE "temp_bookings.txt"
+
+struct Booking
+{
+    char customerName[50];
+    int numAdults;
+    int numChildren;
+    double totalCost;
+    char bookingTime[30];
+};
+
+// Function declarations
+void bookTicket();
+void viewAllBookings();
+void searchBooking();
+void cancelBooking();
+
+int main()
+{
+    int choice;
+    clrscr();
+    do
+    {
+	printf("\n--- Water Park Ticket Booking System ---\n");
+	printf("Ahmedabad, Gujarat\n");
+	printf("1. Book a Ticket\n");
+	printf("2. View All Bookings\n");
+	printf("3. Search Bookings By Name\n");
+	printf("4. Cancel a Booking\n");
+	printf("5. Clear Screen\n");
+	printf("0. Exit\n");
+	printf("----------------------------------------\n");
+	printf("Enter your choice: ");
+	scanf("%d", &choice);
+
+	switch(choice)
+	{
+	    case 1:
+		bookTicket();
+		break;
+
+	    case 2:
+		viewAllBookings();
+		break;
+
+	    case 3:
+		searchBooking();
+		break;
+
+	case 4:
+		cancelBooking();
+		break;
+
+	case 5:
+	       clrscr();
+		break;
+
+	case 0:
+		printf("\nThank you for using the booking system. Goodbye!\n");
+		exit(0);
+
+	default:
+		printf("\nOpps !!!: Invalid choice. Please select from the menu.\n");
+		printf("\nPress Enter\n");
+		getch();
+		clrscr();
+		break;
+	}
+    }while(choice != 0);
+    getch();
+    return 0;
+}
+
+void bookTicket()
+{
+    time_t now =time(NULL);
+    struct tm*t=localtime(&now);
+    struct Booking newBooking;
+    FILE *file_ptr;
+
+    printf("\n--- New Ticket Booking ---\n");
+    printf("Enter Customer Name: ");
+    scanf("%s", newBooking.customerName);
+
+    printf("Enter number of Adults: ");
+    scanf("%d", &newBooking.numAdults);
+
+    printf("Enter number of Children: ");
+    scanf("%d", &newBooking.numChildren);
+
+    if (newBooking.numAdults < 0 || newBooking.numChildren < 0)
+    {
+	    printf("Error: Number of tickets cannot be negative.\n");
+	    return;
+    }
+
+    newBooking.totalCost = (newBooking.numAdults * ADULT_TICKET_PRICE) + (newBooking.numChildren * CHILD_TICKET_PRICE);
+
+
+    strftime(newBooking.bookingTime, sizeof(newBooking.bookingTime), "%d-%m-%Y %H:%M:%S", t);
+
+    printf("\n----------------------------------------\n");
+    printf("Booking Details:\n");
+    printf("Name: %s\n", newBooking.customerName);
+    printf("Adults: %d | Children: %d\n", newBooking.numAdults, newBooking.numChildren);
+    printf("TOTAL COST: %.2f INR\n", newBooking.totalCost);
+    printf("Date & Time: %s\n", newBooking.bookingTime);
+    printf("----------------------------------------\n");
+
+    file_ptr = fopen("bookings.txt", "a");
+
+    if (file_ptr == NULL)
+    {
+	   printf("\nError: Could not open the booking file!\n");
+		 return;
+    }
+
+    fprintf(file_ptr, "%s\t\t%d\t%d\t\t%.2f\t\t%s\n",newBooking.customerName,newBooking.numAdults,newBooking.numChildren,newBooking.totalCost,newBooking.bookingTime);
+
+    fclose(file_ptr);
+    printf("\nSuccess! Your ticket has been booked and saved.\n");
+    printf("\nPress Enter\n");
+    getch();
+    clrscr();
+}
+
+void viewAllBookings()
+{
+    FILE *file_ptr;
+    char buffer[256];
+
+    printf("\n--- All Booked Tickets ---\n");
+    printf("Name\t\tAdults\tChildren\tTotal Cost\tDate   &   Time\n");
+    printf("--------------------------------------------------------------------------\n");
+
+    file_ptr = fopen("bookings.txt", "r");
+
+    if (file_ptr == NULL)
+    {
+	printf("No bookings found yet.\n");
+	    return;
+    }
+
+    while (fgets(buffer, sizeof(buffer), file_ptr) != NULL)
+    {
+	    printf("%s", buffer);
+    }
+    printf("--------------------------------------------------------------------------\n");
+    printf("\nPress Enter\n");
+    getch();
+    clrscr();
+    fclose(file_ptr);
+}
+
+void searchBooking()
+{
+    char searchName[50];
+    char lineBuffer[256];
+    FILE *file_ptr;
+    int found = 0;
+
+    printf("\n--- Search for a Booking ---\n");
+    printf("Enter the customer name to search for: ");
+    scanf(" %s", searchName);
+
+    file_ptr = fopen("bookings.txt", "r");
+
+    if (file_ptr == NULL)
+    {
+	printf("No bookings found yet.\n");
+	return;
+    }
+
+    printf("\n--- Search Results ---\n");
+    printf("Name\t\tAdults\tChildren\tTotal Cost\tDate & Time\n");
+    printf("--------------------------------------------------------------------------\n");
+
+    while (fgets(lineBuffer, sizeof(lineBuffer), file_ptr) != NULL)
+    {
+	     if (strstr(lineBuffer, searchName) != NULL)
+	    {
+		printf("%s", lineBuffer);
+		found = 1;
+	    }
+    }
+    printf("--------------------------------------------------------------------------\n");
+
+    if (found == 0)
+    {
+	printf("No booking found with the name: %s\n", searchName);
+    }
+    printf("\nPress Enter\n");
+    getch();
+    clrscr();
+    fclose(file_ptr);
+}
+
+void cancelBooking()
+{
+    char cancelName[50];
+    char lineBuffer[256];
+    FILE *original_file, *temp_file;
+    int found = 0;
+
+    printf("\n--- Cancel a Booking ---\n");
+    printf("Enter the customer name for the booking to cancel: ");
+    scanf(" %[^\n]s", cancelName);
+
+    original_file = fopen("bookings.txt", "r");
+    temp_file = fopen("temp_bookings.txt", "w");
+
+    if (original_file == NULL) {
+	printf("Error: No bookings exist to cancel.\n");
+	return;
+    }
+    if (temp_file == NULL) {
+	printf("Error: Could not create a temporary file.\n");
+	fclose(original_file);
+	return;
+    }
+
+    while (fgets(lineBuffer, sizeof(lineBuffer), original_file) != NULL) {
+	if (strstr(lineBuffer, cancelName) == NULL) {
+	    fputs(lineBuffer, temp_file);
+	} else {
+	    found = 1;
+	}
+    }
+
+    fclose(original_file);
+    fclose(temp_file);
+
+    if (found)
+    {
+	remove("bookings.txt");
+	rename("temp_bookings.txt", "bookings.txt");
+	printf("\nSuccess! Booking for '%s' has been canceled.\n", cancelName);
+    }
+     else
+     {
+	remove("temp_bookings.txt");
+	printf("\nError: No booking found with the name '%s'.\n", cancelName);
+    }
+
+  printf("\nPress Enter\n");
+    getch();
+    clrscr();
+}
